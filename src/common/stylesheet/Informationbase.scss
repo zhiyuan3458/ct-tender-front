@@ -1,0 +1,41 @@
+.Informationbase{
+  /deep/.el-table{
+    .el-table__row--striped{
+      background: #f0f2f5 !important;
+    }
+  }
+  margin-bottom: 20px;
+  .title {
+    font-size: 14px;
+    margin: 20px auto;
+    border-bottom: 2px solid #409EFF;
+    display: inline-block;
+    line-height: 30px;
+  }
+  .info-tips{
+    text-align: center;
+    line-height: 35px;
+    color: red;
+    font-size: 18px;
+    margin-bottom: 20px;
+  }
+  .clearance{
+    display: block;
+    margin: 0 2px;
+  }
+  .row-two{
+    /deep/.el-form-item__content{
+      display: flex;
+      .el-select{
+        width: 100%;
+      }
+    }
+  }
+  .row-three{
+    /deep/.el-form-item__content{
+      display: flex;
+      .el-select{
+      }
+    }
+  }
+}

@@ -1,0 +1,60 @@
+---
+#安装命令：kubectl apply -f sys/service.yml
+#service，用于kubenetes对外开放端口，是外部请求能够通过nodePort端口访问
+apiVersion: v1
+kind: Service
+metadata:
+  #别名
+  name: ct-tender-front
+  #命名空间
+  namespace: gitlab-ci-tender-front
+spec:
+  #开放端口的类型，有三种
+  type: NodePort
+  ports:
+  - protocol: TCP
+    #kubernetes中的服务之间访问的端口，尽管mysql容器暴露了3306端口（参考https://github.com/docker-library/mysql/的DockerFile），但是集群内其他容器需要通过33306端口访问该服务，外部机器不能访问mysql服务，因为他没有配置NodePort类型
+    port: 8086
+    #容器的端口（最根本的端口入口），与制作容器时暴露的端口一致（DockerFile中EXPOSE），即deployment.yml中的containerPort值
+    targetPort: 8086
+    #kubenetes暴露给外部机器访问的端口
+    nodePort: 30883
+  selector:
+    #此处巨坑，要和xxx的labels的app名一样，且key要是app
+    app: ct-tender-front
+
+
+#---
+#apiVersion: v1
+#kind: Namespace
+#metadata:
+#  name: gitlab-ci
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ct-tender-front
+  namespace: gitlab-ci-tender-front
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ct-tender-front
+  template:
+    metadata:
+      labels:
+        app: ct-tender-front
+    spec:
+      containers:
+      - name: ct-tender-front
+        image: 192.1.80.38:5000/tenderms-front/ct-tenderms-front:IMAGE_TAG
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8086
+        resources: #资源限制
+          limits:
+            cpu: 6
+            memory: 896Mi
+          requests:
+            cpu: 500m
+            memory: 512Mi

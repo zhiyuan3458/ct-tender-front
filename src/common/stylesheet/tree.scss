@@ -1,0 +1,17 @@
+.tree-container {
+  height: 100%;
+  position: relative;
+  .search-input {
+    width: 220px;
+    height: 40px;
+    position: fixed;
+    z-index: 10;
+  }
+  .fit-fixed {
+    height: 40px;
+  }
+  .tree-content {
+    height: calc(100% - 40px - 50px);
+    overflow-y: auto;
+  }
+}

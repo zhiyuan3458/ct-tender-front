@@ -1,0 +1,114 @@
+image: docker:18.09.7-git
+
+variables:
+  DOCKER_HOST: tcp://192.1.80.38:2375/
+  DOCKER_DRIVER: overlay2
+  #参考variables变量的网址是https://docs.gitlab.com/ce/ci/variables/README.html
+  #中文参考https://blog.csdn.net/londa/article/details/93896368
+  #用来做镜像的版本号：分支名称-commit的版本号
+  REF_SHA: $CI_COMMIT_REF_NAME-$CI_COMMIT_SHA
+  #用来做发布tag版本时的镜像版本号
+  COMMIT_TAG: $CI_COMMIT_TAG
+  TMP_COMMIT_TAG: COMMIT_TAG_VALUE
+  TMP_REF_SHA: REF_SHA_VALUE
+  TMP_NAME: IMAGE_TAG
+
+cache:
+  paths:
+    - node_modules/
+
+#services:
+#  - name: docker:18.09.7-dind
+#    command: [ "--insecure-registry=192.1.80.36:5000" ]
+
+stages:
+  - build
+  - test_package #没有打tag标签的时候执行
+  - test_deploy  #没有打tag标签的时候执行
+#  - tag_package  #打tag标签的时候执行
+#  - tag_deploy   #打tag标签的时候执行
+
+job-build:
+#  when: manual
+  only:
+    variables:
+      - $RUN_FLAG == "true"
+  tags:
+    - test-tender-front
+  stage: build
+  image: node:12.8-alpine
+  script:
+    - ls -a
+    - echo -e '\n========（cnpm rm -rf dist）========'
+#    - npm -v
+#    - npm install -g cnpm --registry=https://registry.npm.taobao.org
+    - echo -e '\n========（cnpm i）========'
+#    - cnpm install
+#    - cnpm i increase-memory-limit -g
+#    - cnpm i yarn -g
+    - echo -e '\n========（cnpm i finished）========'
+    - echo -e '\n========（build）========'
+#    - yarn build
+    - echo -e '\n========（build finished）========'
+    - ls -a
+  artifacts:
+    paths:
+      - dist
+    expire_in: 40min
+
+test_docker-build:
+#  only:
+#    variables:
+#      - $RUN_FLAG == "true"
+  tags:
+    - test-tender-front
+  stage: test_package
+  except:
+    - tags
+  script:
+    - docker build -t 192.1.80.38:5000/tenderms-front/ct-tenderms-front:$REF_SHA .
+    - docker push 192.1.80.38:5000/tenderms-front/ct-tenderms-front:$REF_SHA
+#    - docker images | grep ct-dmp
+
+test_k8s-deploy:
+#  only:
+#    variables:
+#      - $RUN_FLAG == "true"
+  tags:
+    - test-tender-front
+  stage: test_deploy
+  image: bitnami/kubectl:1.14
+  except:
+    - tags
+  script:
+    - mkdir -p ~.kube
+    - echo ${CI_JOB_KUBE_CONFIG} | base64 -d > ~.kube/config
+    - sed -i "s/IMAGE_TAG/$REF_SHA/" deployment.yml
+    - kubectl apply -f deployment.yml --record=true
+
+#tag_docker-build:
+# tags:
+#   - test-tender-front
+# stage: tag_package
+# only:
+#   - tags
+# script:
+#   - sed -i "s/trackerUrl/113.125.59.190:31900/" nginx.conf
+#   - sed -i "s/apiURL/113.125.41.160/" nginx.conf
+#   - docker build -t 192.1.80.36:5000/dmp-frontend/ct-dmp-front:$COMMIT_TAG .
+#   - docker push 192.1.80.36:5000/dmp-frontend/ct-dmp-front:$COMMIT_TAG
+#   - docker images | grep ct-dmp
+
+#tag_k8s-deploy:
+#  tags:
+#    - test-dmp-frontend
+#  stage: tag_deploy
+#  image: bitnami/kubectl:1.14
+#  only:
+#   - tags
+#  when: manual
+#  script:
+#    - mkdir -p ~.kube
+#    - echo ${CI_JOB_KUBE_CONFIG} | base64 -d > ~.kube/config
+#    - sed -i "s/IMAGE_TAG/$COMMIT_TAG/" deployment.yml
+#    - kubectl apply -f deployment.yml --record=true
